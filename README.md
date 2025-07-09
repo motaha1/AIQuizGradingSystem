@@ -74,10 +74,10 @@ AutoGrade-AI is a Flask-based web application that automatically grades student 
 ## File Structure
 
 ```
-app.py               # Main Flask application
+app.py               
 templates/
-    index.html       # Upload UI
-.env                 # Environment variables (ignored in Git)
-requirements.txt     # Dependencies
+    index.html       
+.env                 
+requirements.txt     
 ```
 
