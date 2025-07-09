@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Grader - Automated Student Assessment</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            min-height: 100vh;
+        }
+
+        .main-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .results-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+            max-height: calc(100vh - 40px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            position: relative;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+        }
+
+        .header-content {
+            display: inline-block;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: #667eea;
+        }
+
+        .file-upload-group {
+            display: grid;
+            gap: 20px;
+        }
+
+        .file-upload {
+            position: relative;
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload:hover {
+            border-color: #5a67d8;
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .file-upload.dragover {
+            border-color: #4c51bf;
+            background: rgba(102, 126, 234, 0.15);
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-content {
+            pointer-events: none;
+        }
+
+        .file-upload i {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-upload h3 {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .file-upload p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+            color: #667eea;
+            font-weight: 500;
+            display: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .progress-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(102, 126, 234, 0.1);
+            display: none;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .download-btn {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .download-btn.text {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        .download-btn.excel {
+            background: #10b981;
+            color: white;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .results-header h2 {
+            color: #333;
+            font-size: 1.4rem;
+            flex-grow: 1;
+        }
+
+        .results-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .results-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .results-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .results-content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .result-item {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease;
+        }
+
+        .result-item.instructions {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .result-item.grade {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .student-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .result-content {
+            color: #555;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-idle {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .status-processing {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .no-results i {
+            font-size: 3rem;
+            color: #cbd5e0;
+            margin-bottom: 15px;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #dc2626;
+        }
+
+        .clear-results-btn {
+            padding: 8px 15px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .clear-results-btn:hover {
+            background: #dc2626;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .results-panel {
+                position: static;
+                max-height: 500px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .main-panel, .results-panel {
+                padding: 20px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding-top: 60px;
+            }
+
+            .logo {
+                position: static;
+                transform: none;
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px;
+                display: block;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .file-upload {
+                padding: 20px;
+            }
+
+            .download-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-panel">
+            <div class="header">
+                <img src="https://upload.wikimedia.org/wikipedia/ar/thumb/1/16/Birzeit_University_logo.svg/1280px-Birzeit_University_logo.svg.png"
+                     alt="Birzeit University Logo" class="logo">
+                <div class="header-content">
+                    <h1><i class="fas fa-graduation-cap"></i> Quiz Grader</h1>
+                    <p>Birzeit University - v1.0</p>
+                </div>
+            </div>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Upload Files
+                    </h2>
+
+                    <div class="file-upload-group">
+                        <div class="file-upload" data-upload="quiz">
+                            <input type="file" name="quiz_file" accept=".pdf,.doc,.docx,.txt" required>
+                            <div class="file-upload-content">
+                                <i class="fas fa-file-alt"></i>
+                                <h3>Quiz Questions</h3>
+                                <p>Upload your quiz questions (PDF, DOC, DOCX, TXT)</p>
+                                <div class="file-name"></div>
+                            </div>
+                        </div>
+
+                        <div class="file-upload" data-upload="submissions">
+                            <input type="file" name="archive_file" accept=".zip,.rar,.7z" required>
+                            <div class="file-upload-content">
+                                <i class="fas fa-file-archive"></i>
+                                <h3>Student Submissions</h3>
+                                <p>Upload ZIP file (not RAR) containing student folders with code files</p>
+                                <div class="file-name"></div>
+                            </div>
+                        </div>
+
+                        <div class="file-upload" data-upload="instructions">
+                            <input type="file" name="instruction_file" accept=".pdf,.doc,.docx,.txt">
+                            <div class="file-upload-content">
+                                <i class="fas fa-clipboard-list"></i>
+                                <h3>Grading Instructions (Optional)</h3>
+                                <p>Upload custom grading rubric or let AI generate one</p>
+                                <div class="file-name"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <i class="fas fa-rocket"></i> Start Grading Process
+                </button>
+            </form>
+
+            <div class="progress-section" id="progressSection">
+                <h2 class="section-title">
+                    <i class="fas fa-tasks"></i>
+                    Grading Progress
+                </h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Ready to start...</div>
+            </div>
+
+            <div class="download-section" id="downloadSection">
+                <h2 class="section-title">
+                    <i class="fas fa-download"></i>
+                    Download Results
+                </h2>
+                <p>Export your grading results in your preferred format</p>
+                <div class="download-buttons">
+                    <a href="/download/text" class="download-btn text" id="downloadText" target="_blank">
+                        <i class="fas fa-file-text"></i>
+                        Download Text Report
+                    </a>
+                    <a href="/download/excel" class="download-btn excel" id="downloadExcel" target="_blank">
+                        <i class="fas fa-file-excel"></i>
+                        Download Excel Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-panel">
+            <div class="results-header">
+                <h2><i class="fas fa-chart-line"></i> Live Results</h2>
+                <button class="clear-results-btn" id="clearResultsBtn" onclick="clearResults()" style="display: none;">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+                <span class="status-indicator status-idle" id="statusIndicator">
+                    <i class="fas fa-circle"></i> Idle
+                </span>
+            </div>
+            <div class="results-content" id="resultsContent">
+                <div class="no-results">
+                    <i class="fas fa-clipboard-check"></i>
+                    <p>Grading results will appear here in real-time</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let hasResults = false;
+
+        // File upload handling
+        document.querySelectorAll('.file-upload').forEach(upload => {
+            const input = upload.querySelector('input[type="file"]');
+            const fileName = upload.querySelector('.file-name');
+
+            // Drag and drop
+            upload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                upload.classList.add('dragover');
+            });
+
+            upload.addEventListener('dragleave', () => {
+                upload.classList.remove('dragover');
+            });
+
+            upload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                upload.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    input.files = files;
+                    showFileName(fileName, files[0].name);
+                }
+            });
+
+            // File selection
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    showFileName(fileName, e.target.files[0].name);
+                }
+            });
+        });
+
+        function showFileName(element, name) {
+            element.textContent = ` ${name}`;
+            element.style.display = 'block';
+        }
+
+        // Form submission
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const submitBtn = document.getElementById('submitBtn');
+            const progressSection = document.getElementById('progressSection');
+            const downloadSection = document.getElementById('downloadSection');
+
+            // Validate required files
+            if (!formData.get('quiz_file') || !formData.get('archive_file')) {
+                showError('Please select both quiz file and student submissions archive.');
+                return;
+            }
+
+            // Hide download section and clear previous results
+            downloadSection.style.display = 'none';
+            clearResults();
+
+            // Disable submit button and show progress
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner loading"></i> Uploading Files...';
+            progressSection.style.display = 'block';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    startSSE();
+                    updateStatus('processing', 'Processing');
+                    updateProgressText('Starting grading process...');
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+            } catch (error) {
+                showError('Upload Error: ' + error.message);
+                resetForm();
+            }
+        });
+
+        function startSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource('/events');
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleSSEMessage(data);
+                } catch (error) {
+                    console.error('Error parsing SSE message:', error);
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                console.error('SSE error:', error);
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    // Don't reset form immediately, might be temporary disconnection
+                    setTimeout(() => {
+                        if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+                            showError('Connection lost. Please refresh the page and try again.');
+                            resetForm();
+                        }
+                    }, 5000);
+                }
+            };
+        }
+
+        function stopSSE() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        }
+
+        function handleSSEMessage(data) {
+            switch (data.type) {
+                case 'status':
+                    updateStatus(data.status, getStatusText(data.status));
+                    if (data.message) {
+                        updateProgressText(data.message);
+                    }
+                    if (data.status === 'completed') {
+                        stopSSE();
+                        showDownloadSection();
+                        resetForm();
+                        updateProgressText('Grading completed successfully!');
+                    } else if (data.status === 'error') {
+                        stopSSE();
+                        showError('Grading Error: ' + (data.message || 'Unknown error occurred'));
+                        resetForm();
+                    }
+                    break;
+
+                case 'progress':
+                    updateProgressBar(data);
+                    break;
+
+                case 'result':
+                    addResult(data.data);
+                    hasResults = true;
+                    document.getElementById('clearResultsBtn').style.display = 'inline-block';
+                    break;
+
+                case 'heartbeat':
+                    // Keep connection alive
+                    break;
+
+                default:
+                    console.log('Unknown SSE message type:', data.type);
+            }
+        }
+
+        function updateProgressBar(progressData) {
+            const progressFill = document.getElementById('progressFill');
+
+            // Update progress bar
+            const percentage = progressData.total_students > 0
+                ? (progressData.processed_students / progressData.total_students) * 100
+                : 0;
+            progressFill.style.width = percentage + '%';
+
+            // Update progress text
+            if (progressData.current_student && progressData.total_students > 0) {
+                updateProgressText(`Processing: ${progressData.current_student} (${progressData.processed_students}/${progressData.total_students})`);
+            }
+        }
+
+        function updateProgressText(text) {
+            const progressText = document.getElementById('progressText');
+            progressText.textContent = text;
+        }
+
+        function addResult(result) {
+            const resultsContent = document.getElementById('resultsContent');
+
+            // Remove "no results" message if it exists
+            const noResults = resultsContent.querySelector('.no-results');
+            if (noResults) {
+                noResults.remove();
+            }
+
+            // Create result element
+            const resultElement = document.createElement('div');
+
+            if (result.type === 'instructions') {
+                resultElement.className = 'result-item instructions';
+                resultElement.innerHTML = `
+                    <div class="result-header">
+                        <span class="student-name">
+                            <i class="fas fa-clipboard-list"></i> Grading Instructions
+                        </span>
+                        <span class="timestamp">${result.timestamp}</span>
+                    </div>
+                    <div class="result-content">${escapeHtml(result.content)}</div>
+                `;
+            } else if (result.type === 'grade') {
+                resultElement.className = 'result-item grade';
+                resultElement.innerHTML = `
+                    <div class="result-header">
+                        <span class="student-name">
+                            <i class="fas fa-user-graduate"></i> ${escapeHtml(result.student)} - ${escapeHtml(result.file)}
+                        </span>
+                        <span class="timestamp">${result.timestamp}</span>
+                    </div>
+                    <div class="result-content">${escapeHtml(result.content)}</div>
+                `;
+            }
+
+            resultsContent.appendChild(resultElement);
+
+            // Scroll to bottom
+            resultsContent.scrollTop = resultsContent.scrollHeight;
+        }
+
+        function updateStatus(status, text) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.className = `status-indicator status-${status}`;
+
+            let icon = 'fas fa-circle';
+            if (status === 'processing') icon = 'fas fa-spinner loading';
+            else if (status === 'completed') icon = 'fas fa-check-circle';
+            else if (status === 'error') icon = 'fas fa-exclamation-circle';
+
+            statusIndicator.innerHTML = `<i class="${icon}"></i> ${text}`;
+        }
+
+        function getStatusText(status) {
+            const statusTexts = {
+                'idle': 'Idle',
+                'processing': 'Processing',
+                'completed': 'Completed',
+                'error': 'Error'
+            };
+            return statusTexts[status] || status;
+        }
+
+        function showDownloadSection() {
+            const downloadSection = document.getElementById('downloadSection');
+            downloadSection.style.display = 'block';
+
+            // Add timestamp to download URLs to prevent caching
+            const timestamp = new Date().getTime();
+            document.getElementById('downloadText').href = `/download/text?t=${timestamp}`;
+            document.getElementById('downloadExcel').href = `/download/excel?t=${timestamp}`;
+        }
+
+        function showError(message) {
+            const resultsContent = document.getElementById('resultsContent');
+
+            // Remove existing error messages
+            const existingErrors = resultsContent.querySelectorAll('.error-message');
+            existingErrors.forEach(error => error.remove());
+
+            // Add new error message
+            const errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${escapeHtml(message)}`;
+
+            resultsContent.insertBefore(errorElement, resultsContent.firstChild);
+
+            // Update status
+            updateStatus('error', 'Error');
+        }
+
+        function clearResults() {
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = `
+                <div class="no-results">
+                    <i class="fas fa-clipboard-check"></i>
+                    <p>Grading results will appear here in real-time</p>
+                </div>
+            `;
+            hasResults = false;
+            document.getElementById('clearResultsBtn').style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function resetForm() {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Start Grading Process';
+        }
+
+        // Handle download errors
+        document.getElementById('downloadText').addEventListener('click', function(e) {
+            if (!hasResults) {
+                e.preventDefault();
+                showError('No results available for download. Please complete grading first.');
+            }
+        });
+
+        document.getElementById('downloadExcel').addEventListener('click', function(e) {
+            if (!hasResults) {
+                e.preventDefault();
+                showError('No results available for download. Please complete grading first.');
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopSSE();
+        });
+
+        // Auto-reconnect SSE if page becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && eventSource && eventSource.readyState === EventSource.CLOSED) {
+                console.log('Page became visible, attempting to reconnect SSE...');
+                startSSE();
+            }
+        });
+    </script>
+</body>
+</html>
