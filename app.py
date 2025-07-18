@@ -28,7 +28,7 @@ app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this in production
 
 # Azure OpenAI Configuration
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-deployment = "gpt-4o"
+deployment = "gpt-4.1"
 subscription_key = os.getenv('AZURE_OPENAI_API_KEY')
 api_version = "2024-12-01-preview"
 
@@ -63,6 +63,12 @@ grading_progress = {
     'error': None,
     'student_grades': []  # For Excel export
 }
+
+# Flag to stop grading process
+stop_grading_flag = False
+
+# Flag to prevent multiple grading processes
+grading_in_progress = False
 
 # SSE event queue for real-time updates
 sse_clients = []
@@ -214,7 +220,7 @@ def extract_archive_from_blob(blob_name):
             student_files = {}
             for root, dirs, files in os.walk(extract_to):
                 for file in files:
-                    if file.endswith(('.java', '.html')):
+                    if file.endswith(('.java', '.html', '.txt')):
                         file_path = os.path.join(root, file)
                         relative_path = os.path.relpath(file_path, extract_to)
 
@@ -245,9 +251,9 @@ def extract_archive_from_blob(blob_name):
         raise Exception(f"Error extracting archive from blob: {str(e)}")
 
 
-def get_grading_distribution(quiz_content):
+def get_grading_distribution(quiz_content, total_mark=10, temperature=0.2):
     """Get grading distribution from GPT"""
-    prompt = f"""You are an instructor. Given the following quiz, create a detailed and fair grading distribution out of 10 points. Please break down how marks should be assigned to each part of the answer.
+    prompt = f"""You are an instructor. Given the following quiz, create a detailed and fair grading distribution out of {total_mark} points. Please break down how marks should be assigned to each part of the answer.
 The grading should be additive only — no deductions and no bonus points.
 Clearly list how each mark is earned for every part of the answer.
 
@@ -261,14 +267,14 @@ Each step should specify what is required to earn the corresponding fraction of 
 Quiz:
 {quiz_content}
 
-Respond with a clear, detailed mark distribution from 10 in bullet points."""
+Respond with a clear, detailed mark distribution from {total_mark} in bullet points."""
 
     try:
         response = client.chat.completions.create(
             model=deployment,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048,
-            temperature=0.2,
+            temperature=temperature,
             top_p=1.0,
         )
         time.sleep(10)
@@ -277,12 +283,12 @@ Respond with a clear, detailed mark distribution from 10 in bullet points."""
         return f"Failed to get distribution: {str(e)}"
 
 
-def extract_grade_from_response(response_text):
+def extract_grade_from_response(response_text, total_mark=10):
     """Extract numerical grade from GPT response"""
     patterns = [
-        r'(?:grade|score|mark|total)[:\s]*(\d+(?:\.\d+)?)[/\s]*(?:out of\s*)?10',
-        r'(\d+(?:\.\d+)?)[/\s]*10',
-        r'(\d+(?:\.\d+)?)\s*(?:out of|/)\s*10',
+        rf'(?:grade|score|mark|total)[:\s]*(\d+(?:\.\d+)?)[/\s]*(?:out of\s*)?{total_mark}',
+        rf'(\d+(?:\.\d+)?)[/\s]*{total_mark}',
+        rf'(\d+(?:\.\d+)?)\s*(?:out of|/)\s*{total_mark}',
         r'final[:\s]*(\d+(?:\.\d+)?)',
         r'total[:\s]*(\d+(?:\.\d+)?)'
     ]
@@ -292,7 +298,7 @@ def extract_grade_from_response(response_text):
         if match:
             try:
                 grade = float(match.group(1))
-                if 0 <= grade <= 10:
+                if 0 <= grade <= total_mark:
                     return grade
             except ValueError:
                 continue
@@ -300,21 +306,34 @@ def extract_grade_from_response(response_text):
     return None
 
 
-def grade_student_code(quiz_content, student_code, grading_instructions, student_name, file_name):
+def grade_student_code(quiz_content, student_code, grading_instructions, student_name, file_name, total_mark=10, temperature=0.1, grading_rules=None):
     """Grade student code using GPT"""
+    
+    # Default grading rules if none provided
+    if grading_rules is None or len(grading_rules) == 0:
+        grading_rules = [
+            "Include a short explanation based on the distribution",
+            "Be fair",
+            "recheck the code again and evaluate it (if you check twice print \"✅I check it twice\")",
+            "give a partial mark if needed (not only 0 or full mark)",
+            "Be very very Tolerant",
+            "Give marks for the attempt if some things are correct.",
+            "Don't focus too much on the function name If there is not a very big difference.",
+            "Don't focus too much on format of output."
+        ]
+    
+    # Format grading rules as bullet points
+    rules_text = "\n".join([f"-{rule}" for rule in grading_rules])
+    
     prompt = f"""Grade the following student code based on this quiz question.
 
 Use this grading distribution:
 {grading_instructions}
 
 Each grade should:
-- Be scored out of **10**
-- Be clearly labeled with "Grade: X/10" or "Score: X/10" at the end
-- Include a short explanation based on the distribution
-- Be fair
--recheck the code again and evaluate it (if you check twice print "✅I check it twice")
--give a partial mark if needed (not only 0 or full mark)
--be Tolerant
+- Be scored out of **{total_mark}**
+- Be clearly labeled with "Grade: X/{total_mark}" or "Score: X/{total_mark}" at the end
+{rules_text}
 
 Question:
 {quiz_content}
@@ -322,17 +341,19 @@ Question:
 Student Code:
 {student_code}
 
-Please end your response with a clear final grade in the format "Final Grade: X/10" """
+Please end your response with a clear final grade in the format "Final Grade: X/{total_mark}" """
 
     try:
         response = client.chat.completions.create(
             model=deployment,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048,
-            temperature=0.1, #value close to zero (≈0.0)
-            top_p=1.0,
+            temperature=temperature,
+            top_p=1,
+            frequency_penalty=0, #new
+            presence_penalty=0, #new
         )
-        time.sleep(10)
+        time.sleep(2)
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"Grading failed: {str(e)}"
@@ -356,14 +377,17 @@ def create_excel_data(student_grades):
         df.to_excel(writer, sheet_name='Grades', index=False)
 
         # Add summary statistics
+        total_mark = df['Total Mark'].iloc[0] if len(df) > 0 and 'Total Mark' in df.columns else 10
+        pass_threshold = total_mark * 0.6
+        
         summary_data = {
-            'Statistic': ['Total Students', 'Average Grade', 'Highest Grade', 'Lowest Grade', 'Pass Rate (≥6/10)'],
+            'Statistic': ['Total Students', 'Average Grade', 'Highest Grade', 'Lowest Grade', f'Pass Rate (≥{pass_threshold}/{total_mark})'],
             'Value': [
                 len(df),
-                f"{df['Grade'].mean():.2f}/10" if len(df) > 0 else "N/A",
-                f"{df['Grade'].max():.1f}/10" if len(df) > 0 else "N/A",
-                f"{df['Grade'].min():.1f}/10" if len(df) > 0 else "N/A",
-                f"{(df['Grade'] >= 6).sum()}/{len(df)} ({(df['Grade'] >= 6).mean() * 100:.1f}%)" if len(
+                f"{df['Grade'].mean():.2f}/{total_mark}" if len(df) > 0 else "N/A",
+                f"{df['Grade'].max():.1f}/{total_mark}" if len(df) > 0 else "N/A",
+                f"{df['Grade'].min():.1f}/{total_mark}" if len(df) > 0 else "N/A",
+                f"{(df['Grade'] >= pass_threshold).sum()}/{len(df)} ({(df['Grade'] >= pass_threshold).mean() * 100:.1f}%)" if len(
                     df) > 0 else "N/A"
             ]
         }
@@ -376,15 +400,34 @@ def create_excel_data(student_grades):
 
 
 def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, instructions_blob_name=None,
-                         instructions_extension=None):
+                         instructions_extension=None, temp_instructions=0.2, temp_grading=0.1, total_mark=10, model='gpt-4o', grading_rules=None):
     """Background task to process all student submissions with SSE updates"""
-    global grading_progress
+    global grading_progress, deployment, stop_grading_flag, grading_in_progress
+
+    # Check if grading is already in progress
+    if grading_in_progress:
+        print("WARNING: Grading already in progress, skipping duplicate call")
+        return
+
+    # Set grading in progress flag
+    grading_in_progress = True
+    print(f"DEBUG: Starting grading process for session")
+
+    # Set the deployment model
+    deployment = model
+    
+    # Reset stop flag
+    stop_grading_flag = False
 
     try:
+        # Clear any existing data to prevent duplicates
         grading_progress['status'] = 'processing'
         grading_progress['results'] = []
         grading_progress['student_grades'] = []
         grading_progress['error'] = None
+        grading_progress['current_student'] = ''
+        grading_progress['total_students'] = 0
+        grading_progress['processed_students'] = 0
 
         # Broadcast status update
         broadcast_update({
@@ -416,7 +459,7 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
                 'message': 'Generating grading instructions...'
             })
             grading_progress['current_student'] = 'Generating grading instructions...'
-            grading_instructions = get_grading_distribution(quiz_content)
+            grading_instructions = get_grading_distribution(quiz_content, total_mark, temp_instructions)
 
         # Add grading instructions to results and broadcast
         instruction_result = {
@@ -440,6 +483,11 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
         student_files = extract_archive_from_blob(archive_blob_name)
         grading_progress['total_students'] = len(student_files)
 
+        # Debug: Log student structure
+        print(f"DEBUG: Found {len(student_files)} students:")
+        for student_name, files in student_files.items():
+            print(f"  {student_name}: {len(files)} files - {[f['filename'] for f in files]}")
+
         # Broadcast total students count
         broadcast_update({
             'type': 'progress',
@@ -448,8 +496,20 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
         })
 
         student_list = list(student_files.keys())
+        print(f"DEBUG: Processing students in order: {student_list}")
 
         for i, student_name in enumerate(student_list):
+            # Check if grading should be stopped
+            if stop_grading_flag:
+                grading_progress['status'] = 'idle'
+                grading_progress['error'] = 'Grading stopped by user'
+                broadcast_update({
+                    'type': 'status',
+                    'status': 'idle',
+                    'message': 'Grading stopped by user'
+                })
+                return
+                
             grading_progress['current_student'] = student_name
 
             # Broadcast current progress BEFORE processing
@@ -462,9 +522,14 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
 
             student_total_grade = 0
             file_count = 0
+            all_grades = []  # Track all grades for this student
 
             # Process each code file for the student
             for file_info in student_files[student_name]:
+                # Check if grading should be stopped
+                if stop_grading_flag:
+                    return
+                    
                 file_name = file_info['filename']
                 file_content = file_info['content']
                 file_extension = file_info['extension']
@@ -474,13 +539,14 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
 
                 # Grade the code
                 grade_result = grade_student_code(quiz_content, processed_content, grading_instructions,
-                                                  student_name, file_name)
+                                                  student_name, file_name, total_mark, temp_grading, grading_rules)
 
                 # Extract grade for Excel
-                extracted_grade = extract_grade_from_response(grade_result)
+                extracted_grade = extract_grade_from_response(grade_result, total_mark)
                 if extracted_grade is not None:
                     student_total_grade += extracted_grade
                     file_count += 1
+                    all_grades.append(extracted_grade)
 
                 # Create result object
                 result = {
@@ -498,15 +564,24 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
                     'data': result
                 })
 
-            # Calculate average grade for student (if multiple files)
+            # Add student to Excel data only once per student (after processing all their files)
             if file_count > 0:
                 final_grade = student_total_grade / file_count
-                grading_progress['student_grades'].append({
-                    'Student Name': student_name,
-                    'Grade': round(final_grade, 2),
-                    'Files Processed': file_count,
-                    'Status': 'Pass' if final_grade >= 6 else 'Fail'
-                })
+                
+                # Check if student already exists in student_grades (safety check)
+                existing_student = next((s for s in grading_progress['student_grades'] if s['Student Name'] == student_name), None)
+                if existing_student is None:
+                    grading_progress['student_grades'].append({
+                        'Student Name': student_name,
+                        'Grade': round(final_grade, 2),
+                        'Total Mark': total_mark,
+                        'Files Processed': file_count,
+                        'Individual Grades': ', '.join([str(g) for g in all_grades]) if len(all_grades) > 1 else str(all_grades[0]) if all_grades else 'N/A',
+                        'Status': 'Pass' if final_grade >= (total_mark * 0.6) else 'Fail'  # 60% pass rate
+                    })
+                else:
+                    # Log warning if duplicate found
+                    print(f"Warning: Duplicate student '{student_name}' found, skipping...")
 
             # Update processed count AFTER processing each student
             grading_progress['processed_students'] = i + 1
@@ -541,9 +616,13 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
             'total_students': len(student_list)
         })
 
+        print(f"DEBUG: Grading process completed successfully")
+
     except Exception as e:
         grading_progress['status'] = 'error'
         grading_progress['error'] = str(e)
+
+        print(f"DEBUG: Grading process failed with error: {str(e)}")
 
         # Clean up blobs on error
         try:
@@ -560,6 +639,11 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
             'status': 'error',
             'message': str(e)
         })
+    
+    finally:
+        # Always reset the grading in progress flag
+        grading_in_progress = False
+        print(f"DEBUG: Grading process ended, flag reset")
 
 
 @app.route('/')
@@ -569,10 +653,17 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
-    global grading_progress
+    global grading_progress, stop_grading_flag, grading_in_progress
 
     try:
-        # Reset progress
+        print(f"DEBUG: Upload request received")
+        
+        # Check if grading is already in progress
+        if grading_in_progress:
+            return jsonify({'error': 'Grading process already in progress'}), 400
+
+        # Reset progress and stop flag
+        stop_grading_flag = False
         grading_progress = {
             'current_student': '',
             'total_students': 0,
@@ -582,6 +673,8 @@ def upload_files():
             'status': 'idle',
             'error': None
         }
+
+        print(f"DEBUG: Progress reset, checking files")
 
         # Check if files are present
         if 'quiz_file' not in request.files or 'archive_file' not in request.files:
@@ -622,18 +715,67 @@ def upload_files():
                 instructions_blob_name = f"{session_id}/instructions{instructions_extension}"
                 upload_to_blob(instruction_file.stream, instructions_blob_name)
 
+        # Get temperature and model parameters from form
+        temp_instructions = float(request.form.get('temp_instructions', 0.2))
+        temp_grading = float(request.form.get('temp_grading', 0.1))
+        total_mark = int(request.form.get('total_mark', 10))
+        model = request.form.get('model', 'gpt-4o')
+        
+        # Get grading rules from form (JSON string)
+        grading_rules_json = request.form.get('grading_rules', '[]')
+        try:
+            grading_rules = json.loads(grading_rules_json) if grading_rules_json else []
+        except json.JSONDecodeError:
+            grading_rules = []
+
+        # Validate temperature values
+        temp_instructions = max(0.0, min(1.0, temp_instructions))
+        temp_grading = max(0.0, min(1.0, temp_grading))
+        
+        # Validate total mark
+        total_mark = max(1, min(100, total_mark))
+
+        # Validate model
+        if model not in ['gpt-4o', 'gpt-4.1']:
+            model = 'gpt-4o'
+
         # Start background processing
+        print(f"DEBUG: Starting background thread for grading")
         thread = threading.Thread(
             target=process_grading_task,
-            args=(quiz_blob_name, quiz_extension, archive_blob_name, instructions_blob_name, instructions_extension)
+            args=(quiz_blob_name, quiz_extension, archive_blob_name, instructions_blob_name, instructions_extension, temp_instructions, temp_grading, total_mark, model, grading_rules)
         )
         thread.daemon = True
         thread.start()
+        print(f"DEBUG: Background thread started")
 
         return jsonify({'message': 'Files uploaded successfully, grading started'}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/stop', methods=['POST'])
+def stop_grading():
+    """Stop the grading process"""
+    global stop_grading_flag, grading_progress, grading_in_progress
+    
+    print(f"DEBUG: Stop grading requested")
+    stop_grading_flag = True
+    grading_progress['status'] = 'idle'
+    grading_progress['error'] = 'Grading stopped by user'
+    
+    # Reset the grading in progress flag
+    grading_in_progress = False
+    
+    # Broadcast stop message to all SSE clients
+    broadcast_update({
+        'type': 'status',
+        'status': 'idle',
+        'message': 'Grading stopped by user'
+    })
+    
+    return jsonify({'message': 'Grading process stopped'}), 200
 
 
 @app.route('/events')

@@ -414,6 +414,223 @@
             background: #dc2626;
         }
 
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Wider modal for role management */
+        #roleModal .modal-content {
+            max-width: 700px;
+            width: 95%;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .modal-btn.primary:hover {
+            background: #5a67d8;
+        }
+
+        .modal-btn.secondary {
+            background: #e2e8f0;
+            color: #333;
+        }
+
+        .modal-btn.secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .modal-btn.danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .modal-btn.danger:hover {
+            background: #dc2626;
+        }
+
+        /* Role management styles */
+        .rule-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .rule-item input[type="text"] {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+
+        .rule-item input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .rule-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .rule-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background-color 0.2s;
+        }
+
+        .rule-btn.add {
+            background: #10b981;
+            color: white;
+        }
+
+        .rule-btn.add:hover {
+            background: #059669;
+        }
+
+        .rule-btn.remove {
+            background: #ef4444;
+            color: white;
+        }
+
+        .rule-btn.remove:hover {
+            background: #dc2626;
+        }
+
+        .add-rule-btn {
+            width: 100%;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .add-rule-btn:hover {
+            background: #5a67d8;
+        }
+
+        .rules-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .stop-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .stop-btn:hover {
+            background: #dc2626;
+        }
+
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -491,7 +708,7 @@
                      alt="Birzeit University Logo" class="logo">
                 <div class="header-content">
                     <h1><i class="fas fa-graduation-cap"></i> Quiz Grader</h1>
-                    <p>Birzeit University - v1.0</p>
+                    <p>Birzeit University - v1.1</p>
                 </div>
             </div>
 
@@ -500,6 +717,12 @@
                     <h2 class="section-title">
                         <i class="fas fa-cloud-upload-alt"></i>
                         Upload Files
+                        <button type="button" id="settingsBtn" style="background: none; border: none; color: #f59e0b; font-size: 1.1rem; cursor: pointer; margin-left: 10px;" title="Settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button type="button" id="roleBtn" style="background: none; border: none; color: #10b981; font-size: 1.1rem; cursor: pointer; margin-left: 5px;" title="Grading Rules">
+                            <i class="fas fa-user-graduate"></i>
+                        </button>
                     </h2>
 
                     <div class="file-upload-group">
@@ -518,7 +741,7 @@
                             <div class="file-upload-content">
                                 <i class="fas fa-file-archive"></i>
                                 <h3>Student Submissions</h3>
-                                <p>Upload ZIP file (not RAR) containing student folders with code files</p>
+                                <p>Upload ZIP file containing student folders with code files (.java, .html, .txt)</p>
                                 <div class="file-name"></div>
                             </div>
                         </div>
@@ -537,6 +760,10 @@
 
                 <button type="submit" class="submit-btn" id="submitBtn">
                     <i class="fas fa-rocket"></i> Start Grading Process
+                </button>
+                
+                <button type="button" class="stop-btn" id="stopBtn">
+                    <i class="fas fa-stop"></i> Stop Grading
                 </button>
             </form>
 
@@ -589,9 +816,277 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Settings</h2>
+                <p>Configure AI parameters for grading</p>
+            </div>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="tempInstructions">Temperature for Instructions (0.0 - 1.0):</label>
+                    <input type="number" id="tempInstructions" step="0.01" min="0" max="1" placeholder="0.2" value="0.2" required>
+                </div>
+                <div class="form-group">
+                    <label for="tempGrading">Temperature for Grading (0.0 - 1.0):</label>
+                    <input type="number" id="tempGrading" step="0.01" min="0" max="1" placeholder="0.1" value="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="totalMark">Total Mark (default: 10):</label>
+                    <input type="number" id="totalMark" step="1" min="1" max="100" placeholder="10" value="10" required>
+                </div>
+                <div class="form-group">
+                    <label>AI Model:</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="gpt4o" name="model" value="gpt-4o" checked>
+                            <label for="gpt4o">GPT-4o</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="gpt41" name="model" value="gpt-4.1">
+                            <label for="gpt41">GPT-4.1</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="modal-btn primary">OK</button>
+                    <button type="button" class="modal-btn secondary" id="cancelSettings">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> Confirm Processing</h2>
+                <p id="confirmText">Are you sure you want to start the grading process?</p>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn primary" id="confirmStart">Start</button>
+                <button type="button" class="modal-btn secondary" id="cancelConfirm">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Management Modal -->
+    <div id="roleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-graduate"></i> Grading Rules</h2>
+                <p>Customize the grading instructions for the AI</p>
+            </div>
+            <form id="roleForm">
+                <div class="form-group">
+                    <label>Grading Rules:</label>
+                    <div class="rules-container" id="rulesContainer">
+                        <!-- Rules will be dynamically added here -->
+                    </div>
+                    <button type="button" class="add-rule-btn" id="addRuleBtn">
+                        <i class="fas fa-plus"></i> Add New Rule
+                    </button>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="modal-btn primary">Save Rules</button>
+                    <button type="button" class="modal-btn secondary" id="cancelRole">Cancel</button>
+                    <button type="button" class="modal-btn danger" id="resetRules">Reset to Default</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let eventSource = null;
         let hasResults = false;
+        let gradingInProgress = false;  // Track if grading is in progress
+        let currentSettings = {
+            tempInstructions: 0.2,
+            tempGrading: 0.1,
+            model: 'gpt-4o',
+            totalMark: 10
+        };
+
+        // Default grading rules
+        let gradingRules = [
+            "Include a short explanation based on the distribution",
+            "Be fair",
+            "recheck the code again and evaluate it (if you check twice print \"✅I check it twice\")",
+            "give a partial mark if needed (not only 0 or full mark)",
+            "Be very very Tolerant",
+            "Give marks for the attempt if some things are correct.",
+            "Don't focus too much on the function name If there is not a very big difference.",
+            "Don't focus too much on format of output."
+        ];
+
+        // Settings modal handling
+        const settingsModal = document.getElementById('settingsModal');
+        const confirmModal = document.getElementById('confirmModal');
+        const roleModal = document.getElementById('roleModal');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const roleBtn = document.getElementById('roleBtn');
+        const settingsForm = document.getElementById('settingsForm');
+        const roleForm = document.getElementById('roleForm');
+        const cancelSettings = document.getElementById('cancelSettings');
+        const confirmStart = document.getElementById('confirmStart');
+        const cancelConfirm = document.getElementById('cancelConfirm');
+        const cancelRole = document.getElementById('cancelRole');
+        const addRuleBtn = document.getElementById('addRuleBtn');
+        const resetRules = document.getElementById('resetRules');
+        const rulesContainer = document.getElementById('rulesContainer');
+        const stopBtn = document.getElementById('stopBtn');
+
+        // Open settings modal
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.style.display = 'flex';
+        });
+
+        // Close settings modal
+        cancelSettings.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+
+        // Handle settings form submission
+        settingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            currentSettings.tempInstructions = parseFloat(document.getElementById('tempInstructions').value);
+            currentSettings.tempGrading = parseFloat(document.getElementById('tempGrading').value);
+            currentSettings.totalMark = parseInt(document.getElementById('totalMark').value);
+            currentSettings.model = document.querySelector('input[name="model"]:checked').value;
+            settingsModal.style.display = 'none';
+        });
+
+        // Role management functionality
+        function renderRules() {
+            rulesContainer.innerHTML = '';
+            gradingRules.forEach((rule, index) => {
+                const ruleDiv = document.createElement('div');
+                ruleDiv.className = 'rule-item';
+                ruleDiv.innerHTML = `
+                    <input type="text" value="${rule}" placeholder="Enter grading rule..." onchange="updateRule(${index}, this.value)">
+                    <div class="rule-actions">
+                        <button type="button" class="rule-btn remove" onclick="removeRule(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                rulesContainer.appendChild(ruleDiv);
+            });
+        }
+
+        function updateRule(index, value) {
+            gradingRules[index] = value;
+        }
+
+        function removeRule(index) {
+            gradingRules.splice(index, 1);
+            renderRules();
+        }
+
+        function addNewRule() {
+            gradingRules.push('');
+            renderRules();
+            // Focus on the new rule input
+            const inputs = rulesContainer.querySelectorAll('input[type="text"]');
+            if (inputs.length > 0) {
+                inputs[inputs.length - 1].focus();
+            }
+        }
+
+        function resetToDefaultRules() {
+            gradingRules = [
+                "Include a short explanation based on the distribution",
+                "Be fair",
+                "recheck the code again and evaluate it (if you check twice print \"✅I check it twice\")",
+                "give a partial mark if needed (not only 0 or full mark)",
+                "Be very very Tolerant",
+                "Give marks for the attempt if some things are correct.",
+                "Don't focus too much on the function name If there is not a very big difference.",
+                "Don't focus too much on format of output."
+            ];
+            renderRules();
+        }
+
+        // Open role modal
+        roleBtn.addEventListener('click', () => {
+            renderRules();
+            roleModal.style.display = 'flex';
+        });
+
+        // Close role modal
+        cancelRole.addEventListener('click', () => {
+            roleModal.style.display = 'none';
+        });
+
+        // Handle role form submission
+        roleForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Filter out empty rules
+            gradingRules = gradingRules.filter(rule => rule.trim() !== '');
+            roleModal.style.display = 'none';
+        });
+
+        // Add new rule button
+        addRuleBtn.addEventListener('click', addNewRule);
+
+        // Reset rules button
+        resetRules.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset to default grading rules?')) {
+                resetToDefaultRules();
+            }
+        });
+
+        // Make functions global for inline event handlers
+        window.updateRule = updateRule;
+        window.removeRule = removeRule;
+
+        // Close confirmation modal
+        cancelConfirm.addEventListener('click', () => {
+            confirmModal.style.display = 'none';
+        });
+
+        // Stop grading functionality
+        stopBtn.addEventListener('click', async () => {
+            stopBtn.disabled = true;
+            stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+            
+            try {
+                const response = await fetch('/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    stopSSE();
+                    updateStatus('idle', 'Stopped');
+                    updateProgressText('Grading stopped by user.');
+                    resetForm();
+                    stopBtn.style.display = 'none';
+                } else {
+                    throw new Error('Failed to stop grading');
+                }
+            } catch (error) {
+                showError('Failed to stop grading: ' + error.message);
+                stopBtn.disabled = false;
+                stopBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Grading';
+            }
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.style.display = 'none';
+            }
+            if (e.target === confirmModal) {
+                confirmModal.style.display = 'none';
+            }
+            if (e.target === roleModal) {
+                roleModal.style.display = 'none';
+            }
+        });
 
         // File upload handling
         document.querySelectorAll('.file-upload').forEach(upload => {
@@ -634,17 +1129,66 @@
         // Form submission
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('DEBUG: Form submitted');
 
+            // Check if grading is already in progress
+            if (gradingInProgress) {
+                console.log('DEBUG: Grading already in progress, ignoring submission');
+                return;
+            }
+
+            // Validate required files first
             const formData = new FormData(e.target);
-            const submitBtn = document.getElementById('submitBtn');
-            const progressSection = document.getElementById('progressSection');
-            const downloadSection = document.getElementById('downloadSection');
-
-            // Validate required files
             if (!formData.get('quiz_file') || !formData.get('archive_file')) {
                 showError('Please select both quiz file and student submissions archive.');
                 return;
             }
+
+            console.log('DEBUG: Showing confirmation modal');
+            // Show confirmation modal with current settings
+            const confirmText = document.getElementById('confirmText');
+            confirmText.innerHTML = `
+                Are you sure you want to process with:<br><br>
+                <strong>Temperature for instruction:</strong> ${currentSettings.tempInstructions}<br>
+                <strong>Temperature for grading:</strong> ${currentSettings.tempGrading}<br>
+                <strong>Total mark:</strong> ${currentSettings.totalMark}<br>
+                <strong>Model:</strong> ${currentSettings.model}
+            `;
+            confirmModal.style.display = 'flex';
+
+            // Set up confirmation handler (remove any existing listeners to prevent duplicates)
+            confirmStart.replaceWith(confirmStart.cloneNode(true));
+            const newConfirmStart = document.getElementById('confirmStart');
+            
+            newConfirmStart.addEventListener('click', () => {
+                console.log('DEBUG: Confirmation clicked, starting grading');
+                confirmModal.style.display = 'none';
+                startGradingProcess(formData);
+            });
+        });
+
+        async function startGradingProcess(formData) {
+            console.log('DEBUG: Starting grading process');
+            const submitBtn = document.getElementById('submitBtn');
+            const progressSection = document.getElementById('progressSection');
+            const downloadSection = document.getElementById('downloadSection');
+
+            // Check again if already processing
+            if (gradingInProgress || submitBtn.disabled) {
+                console.log('DEBUG: Grading already in progress, aborting');
+                return;
+            }
+
+            // Set grading in progress flag
+            gradingInProgress = true;
+            console.log('DEBUG: Set gradingInProgress to true');
+
+            // Add settings to form data
+            formData.append('temp_instructions', currentSettings.tempInstructions);
+            formData.append('temp_grading', currentSettings.tempGrading);
+            formData.append('total_mark', currentSettings.totalMark);
+            formData.append('model', currentSettings.model);
+            formData.append('grading_rules', JSON.stringify(gradingRules));
 
             // Hide download section and clear previous results
             downloadSection.style.display = 'none';
@@ -654,6 +1198,7 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner loading"></i> Uploading Files...';
             progressSection.style.display = 'block';
+            stopBtn.style.display = 'inline-block';
 
             try {
                 const response = await fetch('/upload', {
@@ -673,8 +1218,9 @@
             } catch (error) {
                 showError('Upload Error: ' + error.message);
                 resetForm();
+                stopBtn.style.display = 'none';
             }
-        });
+        }
 
         function startSSE() {
             if (eventSource) {
@@ -725,10 +1271,12 @@
                         showDownloadSection();
                         resetForm();
                         updateProgressText('Grading completed successfully!');
+                        stopBtn.style.display = 'none';
                     } else if (data.status === 'error') {
                         stopSSE();
                         showError('Grading Error: ' + (data.message || 'Unknown error occurred'));
                         resetForm();
+                        stopBtn.style.display = 'none';
                     }
                     break;
 
@@ -885,6 +1433,8 @@
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Start Grading Process';
+            gradingInProgress = false;  // Reset grading flag
+            console.log('DEBUG: Form reset, gradingInProgress set to false');
         }
 
         // Handle download errors
