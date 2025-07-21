@@ -17,7 +17,7 @@ AutoGrade-AI is a Flask-based web application that automatically grades student 
 ## Technologies Used
 
 - Python (Flask)
-- Azure OpenAI (GPT-4o)
+- Azure OpenAI (GPT-4o and GPT-4.1)
 - Azure Blob Storage
 - Pandas and OpenPyXL for Excel generation
 - Server-Sent Events (SSE) for real-time updates
