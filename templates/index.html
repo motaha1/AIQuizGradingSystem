@@ -348,6 +348,27 @@
             overflow-y: auto;
         }
 
+        .response-id {
+            background: #e0f2fe;
+            border: 1px solid #b3e5fc;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #0277bd;
+        }
+
+        .response-id i {
+            color: #0288d1;
+            margin-right: 6px;
+        }
+
+        .response-id strong {
+            font-weight: 600;
+            color: #01579b;
+        }
+
         .status-indicator {
             display: inline-flex;
             align-items: center;
@@ -708,7 +729,7 @@
                      alt="Birzeit University Logo" class="logo">
                 <div class="header-content">
                     <h1><i class="fas fa-graduation-cap"></i> Quiz Grader</h1>
-                    <p>Birzeit University - v1.1</p>
+                    <p>Birzeit University - v1.2</p>
                 </div>
             </div>
 
@@ -1344,6 +1365,12 @@
                 `;
             } else if (result.type === 'grade') {
                 resultElement.className = 'result-item grade';
+                
+                // Create response ID display
+                const responseIdHtml = result.response_id 
+                    ? `<div class="response-id"><i class="fas fa-id-badge"></i> API Response ID: <strong>${escapeHtml(result.response_id)}</strong></div>`
+                    : '';
+                
                 resultElement.innerHTML = `
                     <div class="result-header">
                         <span class="student-name">
@@ -1351,6 +1378,7 @@
                         </span>
                         <span class="timestamp">${result.timestamp}</span>
                     </div>
+                    ${responseIdHtml}
                     <div class="result-content">${escapeHtml(result.content)}</div>
                 `;
             }

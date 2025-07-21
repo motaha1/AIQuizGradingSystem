@@ -353,10 +353,20 @@ Please end your response with a clear final grade in the format "Final Grade: X/
             frequency_penalty=0, #new
             presence_penalty=0, #new
         )
+        #print(f"🔥 API RESPONSE ID: {response.id} - Student: {student_name}, File: {file_name}")
         time.sleep(2)
-        return response.choices[0].message.content.strip()
+        
+        # Return both content and response ID
+        return {
+            'content': response.choices[0].message.content.strip(),
+            'response_id': response.id
+        }
     except Exception as e:
-        return f"Grading failed: {str(e)}"
+        print(f"❌ API CALL FAILED - Student: {student_name}, File: {file_name}, Error: {str(e)}")
+        return {
+            'content': f"Grading failed: {str(e)}",
+            'response_id': None
+        }
 
 
 def create_excel_data(student_grades):
@@ -541,19 +551,23 @@ def process_grading_task(quiz_blob_name, quiz_extension, archive_blob_name, inst
                 grade_result = grade_student_code(quiz_content, processed_content, grading_instructions,
                                                   student_name, file_name, total_mark, temp_grading, grading_rules)
 
-                # Extract grade for Excel
-                extracted_grade = extract_grade_from_response(grade_result, total_mark)
+                # Extract grade for Excel (handle new return format)
+                grade_content = grade_result.get('content', grade_result) if isinstance(grade_result, dict) else grade_result
+                response_id = grade_result.get('response_id') if isinstance(grade_result, dict) else None
+                
+                extracted_grade = extract_grade_from_response(grade_content, total_mark)
                 if extracted_grade is not None:
                     student_total_grade += extracted_grade
                     file_count += 1
                     all_grades.append(extracted_grade)
 
-                # Create result object
+                # Create result object with response ID
                 result = {
                     'type': 'grade',
                     'student': student_name,
                     'file': file_name,
-                    'content': grade_result,
+                    'content': grade_content,
+                    'response_id': response_id,
                     'timestamp': datetime.now().strftime('%H:%M:%S')
                 }
 
